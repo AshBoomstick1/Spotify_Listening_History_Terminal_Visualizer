@@ -19,7 +19,8 @@ struct data_bar {
 std::unordered_map<std::string, int> colors = {
   {"Row1", 236},
   {"Row2", 239},
-  {"Text", 254}
+  {"Text", 254},
+  {"Border", 3}
 };
 
 const int scale = 200;
@@ -147,18 +148,6 @@ void read_data(const display_mode mode)
       break;
 
     case song_time:
-      skip_lines(file, 1);
-
-      std::getline(file, label);
-
-      label = label.substr(17);
-      label = label.substr(0, label.size() - 2);
-
-      skip_lines(file, 2);
-      std::getline(file, value_str);
-
-      break;
-    case artist_time:
       skip_lines(file, 2);
       while(!file.eof())
       {
@@ -185,6 +174,36 @@ void read_data(const display_mode mode)
         skip_lines(file, 3);
       }
       break;
+    
+    case artist_time:
+      skip_lines(file, 1);
+      while(!file.eof())
+      {
+        std::getline(file, label);
+        label = label.substr(18);
+        label = label.substr(0, label.size() - 2);
+
+        skip_lines(file, 1);
+
+        std::getline(file, value_str);
+        value_str = value_str.substr(15);
+        value = std::stoi(value_str);
+              
+        label_idx = where_in_data(label);
+        if (label_idx == -1) //if the label is not already present in the dataset read
+        {
+          data_bar new_data;
+          new_data.label = label;
+          new_data.value = value;
+          data.push_back(new_data);
+        }
+        else
+        {
+          data[label_idx].value += value;
+        }
+        skip_lines(file, 2);
+      }
+      break;
   }
 
   file.close();
@@ -196,10 +215,17 @@ void display_data(const display_mode mode)
   int scalar = data[0].value;
   int row_length = data[0].value / scalar * scale;
 
+  for (int i = 0; i < scale + 10; i++)
+  {
+    std::cout << "\x1B[48:5:" << colors["Border"] << "m ";
+  }
+  std::cout << "\x1B[0m\n";
+
   if (mode == artist_time || mode == album_time || mode == song_time)
   {
     for (int i = 0; i < data.size(); i++)
     {
+      std::cout << "\x1B[48:5:" << colors["Border"] << "m  \x1B[0m";
       int time_length = ms_to_string(data[i].value).size();
       int background_color = colors["Row1"];
       if (i % 2 == 0)
@@ -257,6 +283,7 @@ void display_data(const display_mode mode)
   {
     for (int i = 0; i < data.size(); i++)
     {
+      std::cout << "\x1B[48:5:" << colors["Border"] << "m  \x1B[0m";
       int background_color = colors["Row1"];
       if (i % 2 == 0)
       {
